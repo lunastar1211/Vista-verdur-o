@@ -4,7 +4,25 @@ import Sidebar from '../components/Sidebar'
 import Topo from '../components/Topo'
 import Rodape from '../components/Rodape'
 
+import { useApi } from '../hooks/useApi'
+import { getDashboardResumo } from '../services/dashboard'
+import { getRelatorios } from '../services/relatorios'
+
+function formatarMoeda(valor) {
+  return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatarData(dataISO) {
+  if (!dataISO) return '—'
+  return new Date(dataISO).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 function Relatorio() {
+  const { data: resumo, loading: loadingResumo } = useApi(getDashboardResumo)
+  const { data: relatorios, loading: loadingRel, error } = useApi(getRelatorios)
 
   return (
     <div className="layout">
@@ -21,163 +39,91 @@ function Relatorio() {
           Análises e insights para apoiar suas decisões.
         </p>
 
+        {error && <p style={{ padding: '1rem', color: 'red' }}>Erro: {error}</p>}
+
         {/* Indicadores */}
         <div className="indicadores-relatorio">
 
           <div className="indicador">
             <h4>Faturamento Total</h4>
-            <p>R$ 248.750,30</p>
-            <span>▲ 8,5%</span>
+            <p>{loadingResumo ? '...' : formatarMoeda(resumo?.receita_total ?? 0)}</p>
           </div>
 
           <div className="indicador">
             <h4>Total de Vendas</h4>
-            <p>1.245</p>
-            <span>▲ 12,4%</span>
+            <p>{loadingResumo ? '...' : Number(resumo?.total_vendas ?? 0).toLocaleString('pt-BR')}</p>
           </div>
 
           <div className="indicador">
             <h4>Ticket Médio</h4>
-            <p>R$ 103,22</p>
-            <span>▲ 7,2%</span>
+            <p>{loadingResumo ? '...' : formatarMoeda(resumo?.ticket_medio ?? 0)}</p>
           </div>
 
           <div className="indicador">
-            <h4>Novos Clientes</h4>
-            <p>89</p>
-            <span>▲ 15,8%</span>
+            <h4>Total de Clientes</h4>
+            <p>{loadingResumo ? '...' : Number(resumo?.total_clientes ?? 0).toLocaleString('pt-BR')}</p>
           </div>
 
           <div className="indicador">
             <h4>Produtos Vendidos</h4>
-            <p>3.421</p>
-            <span>▲ 9,1%</span>
+            <p>{loadingResumo ? '...' : Number(resumo?.produtos_vendidos ?? 0).toLocaleString('pt-BR')}</p>
           </div>
 
         </div>
 
-        {/* Faturamento */}
-        <div className="grafico-faturamento">
-
-          <h4>
-            Faturamento ao Longo do Tempo
-          </h4>
-
-          <div className="valores-fatura">
-            R$ 0 | R$ 10 mil | R$ 20 mil | R$ 30 mil
-          </div>
-
-          <div className="datas-fatura">
-            01/05 06/05 11/05 16/05 21/05 26/05 31/05
-          </div>
-
-        </div>
-
-        {/* Tabela */}
+        {/* Tabela de relatórios */}
         <div className="card-tabela">
 
           <h4>Relatórios Disponíveis</h4>
 
           <table>
-
             <thead>
-
               <tr>
                 <th>Relatório</th>
-                <th>Descrição</th>
-                <th>Período</th>
                 <th>Gerado em</th>
                 <th>Gerado por</th>
-                <th>Formato</th>
                 <th>Ações</th>
               </tr>
-
             </thead>
-
             <tbody>
-
-              <tr>
-                <td>Relatório de Vendas</td>
-                <td>Detalhamento completo das vendas</td>
-                <td>01/05/2025 - 31/05/2025</td>
-                <td>31/05/2025 08:45</td>
-                <td>Administrador</td>
-                <td>PDF</td>
-
-                <td>
-                  <button className="btn-acao">
-                    ↓
-                  </button>
-                </td>
-              </tr>
-
-              <tr>
-                <td>Relatório de Estoque</td>
-                <td>Situação atual do estoque</td>
-                <td>01/05/2025 - 31/05/2025</td>
-                <td>31/05/2025 08:30</td>
-                <td>Administrador</td>
-                <td>Excel</td>
-
-                <td>
-                  <button className="btn-acao">
-                    ↓
-                  </button>
-                </td>
-              </tr>
-
-              <tr>
-                <td>Relatório de Clientes</td>
-                <td>Análise da base de clientes</td>
-                <td>01/05/2025 - 31/05/2025</td>
-                <td>31/05/2025 08:15</td>
-                <td>Administrador</td>
-                <td>PDF</td>
-
-                <td>
-                  <button className="btn-acao">
-                    ↓
-                  </button>
-                </td>
-              </tr>
-
-              <tr>
-                <td>Relatório de Produtos</td>
-                <td>Performance de produtos</td>
-                <td>01/05/2025 - 31/05/2025</td>
-                <td>31/05/2025 08:00</td>
-                <td>Administrador</td>
-                <td>Excel</td>
-
-                <td>
-                  <button className="btn-acao">
-                    ↓
-                  </button>
-                </td>
-              </tr>
-
-              <tr>
-                <td>Relatório Financeiro</td>
-                <td>Resumo financeiro e fluxo de caixa</td>
-                <td>01/05/2025 - 31/05/2025</td>
-                <td>31/05/2025 07:45</td>
-                <td>Administrador</td>
-                <td>PDF</td>
-
-                <td>
-                  <button className="btn-acao">
-                    ↓
-                  </button>
-                </td>
-              </tr>
-
+              {loadingRel && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '1rem' }}>
+                    Carregando...
+                  </td>
+                </tr>
+              )}
+              {!loadingRel && relatorios?.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '1rem', color: '#888' }}>
+                    Nenhum relatório gerado ainda.
+                  </td>
+                </tr>
+              )}
+              {relatorios?.map((r) => (
+                <tr key={r.id_relatorio}>
+                  <td>Relatório IA #{r.id_relatorio}</td>
+                  <td>{formatarData(r.data_geracao)}</td>
+                  <td>{r.nome_usuario ?? '—'}</td>
+                  <td>
+                    <button
+                      className="btn-acao"
+                      title="Ver conteúdo"
+                      onClick={() => alert(r.conteudo ?? 'Sem conteúdo')}
+                    >
+                      ↓
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
-
           </table>
 
-          <p className="paginacao">
-            Mostrando 1 a 5 de 10 relatórios
-          </p>
+          {relatorios?.length > 0 && (
+            <p className="paginacao">
+              Mostrando {relatorios.length} {relatorios.length === 1 ? 'relatório' : 'relatórios'}
+            </p>
+          )}
 
         </div>
 
