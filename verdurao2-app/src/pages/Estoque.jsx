@@ -4,7 +4,51 @@ import Sidebar from '../components/Sidebar'
 import Topo from '../components/Topo'
 import Rodape from '../components/Rodape'
 
+import { useApi } from '../hooks/useApi'
+import { getEstoque } from '../services/estoque'
+
+// Limites para classificar status (ajuste conforme sua regra de negócio)
+const LIMITE_CRITICO  = 10
+const LIMITE_ATENCAO  = 25
+
+function classificarStatus(saldo) {
+  if (saldo <= LIMITE_CRITICO) return 'Crítico'
+  if (saldo <= LIMITE_ATENCAO) return 'Atenção'
+  return 'Normal'
+}
+
+function formatarMoeda(valor) {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
 function Estoque() {
+  const { data: itens, loading, error } = useApi(getEstoque)
+
+  // ── KPIs calculados a partir dos dados reais ──────────────
+  const valorTotal      = itens ? itens.reduce((acc, i) => acc + i.saldo_disponivel * i.preco, 0) : 0
+  const totalItens      = itens ? itens.reduce((acc, i) => acc + i.saldo_disponivel, 0) : 0
+  const produtosCadast  = itens ? new Set(itens.map(i => i.SKU)).size : 0
+  const itensBaixo      = itens ? itens.filter(i => classificarStatus(i.saldo_disponivel) !== 'Normal').length : 0
+
+  // ── Contagem de status ────────────────────────────────────
+  const qtdNormal   = itens ? itens.filter(i => classificarStatus(i.saldo_disponivel) === 'Normal').length   : 0
+  const qtdAtencao  = itens ? itens.filter(i => classificarStatus(i.saldo_disponivel) === 'Atenção').length  : 0
+  const qtdCritico  = itens ? itens.filter(i => classificarStatus(i.saldo_disponivel) === 'Crítico').length  : 0
+
+  // ── Estoque por categoria ─────────────────────────────────
+  const porCategoria = itens
+    ? itens.reduce((acc, i) => {
+        acc[i.categoria] = (acc[i.categoria] || 0) + i.saldo_disponivel
+        return acc
+      }, {})
+    : {}
+
+  // ── Itens críticos/atenção para a tabela ──────────────────
+  const itensCriticos = itens
+    ? itens
+        .filter(i => classificarStatus(i.saldo_disponivel) !== 'Normal')
+        .sort((a, b) => a.saldo_disponivel - b.saldo_disponivel)
+    : []
 
   return (
     <div className="layout">
@@ -15,56 +59,31 @@ function Estoque() {
 
         <Topo />
 
+        {/* Loading / Erro */}
+        {loading && <p style={{ padding: '1rem' }}>Carregando estoque...</p>}
+        {error   && <p style={{ padding: '1rem', color: 'red' }}>Erro ao carregar: {error}</p>}
+
         {/* KPIs Estoque */}
         <div className="kpi-estoque">
 
           <div className="kpi">
             <p>Valor Total em Estoque</p>
-            <h3>R$ 248.750,30</h3>
-            <span className="positivo">
-              ▲ 8,5% vs último mês
-            </span>
+            <h3>{formatarMoeda(valorTotal)}</h3>
           </div>
 
           <div className="kpi">
             <p>Produtos Cadastrados</p>
-            <h3>5</h3>
-            <span>— 0,0%</span>
+            <h3>{produtosCadast}</h3>
           </div>
 
           <div className="kpi">
             <p>Itens em Estoque</p>
-            <h3>2.341</h3>
-            <span>▲ 5,2%</span>
+            <h3>{totalItens.toLocaleString('pt-BR')}</h3>
           </div>
 
           <div className="kpi">
             <p>Itens com Estoque Baixo</p>
-
-            <h3 className="texto-vermelho">
-              23
-            </h3>
-
-            <span className="negativo">
-              ▲ 15,0%
-            </span>
-          </div>
-
-        </div>
-
-        {/* Gráfico */}
-        <div className="card">
-
-          <h4>
-            Nível de Estoque (Quantidade de Itens)
-          </h4>
-
-          <div className="simulador-linha">
-            3.000 2.500 2.000 1.500 1.000 500 0
-          </div>
-
-          <div className="datas-estoque">
-            01/05 06/05 11/05 16/05 21/05 26/05 31/05
+            <h3 className="texto-vermelho">{itensBaixo}</h3>
           </div>
 
         </div>
@@ -73,35 +92,22 @@ function Estoque() {
         <div className="estoque-categoria-status">
 
           <div className="card categoria-valor">
-
             <h4>Estoque por Categoria</h4>
-
             <ul>
-              <li>Camisetas: 40%</li>
-              <li>Calças: 25%</li>
-              <li>Tênis: 20%</li>
-              <li>Bonés: 10%</li>
-              <li>Shirts: 5%</li>
+              {Object.entries(porCategoria).map(([cat, qtd]) => (
+                <li key={cat}>{cat}: {qtd} unid.</li>
+              ))}
+              {!loading && Object.keys(porCategoria).length === 0 && (
+                <li>Nenhuma categoria encontrada</li>
+              )}
             </ul>
-
           </div>
 
           <div className="card status-geral">
-
             <h4>Status do Estoque</h4>
-
-            <p>
-              <span>Normal:</span> 133 itens
-            </p>
-
-            <p>
-              <span>Atenção:</span> 18 itens
-            </p>
-
-            <p>
-              <span>Crítico:</span> 5 itens
-            </p>
-
+            <p><span>Normal:</span>  {qtdNormal}  {qtdNormal  === 1 ? 'item' : 'itens'}</p>
+            <p><span>Atenção:</span> {qtdAtencao} {qtdAtencao === 1 ? 'item' : 'itens'}</p>
+            <p><span>Crítico:</span> {qtdCritico} {qtdCritico === 1 ? 'item' : 'itens'}</p>
           </div>
 
         </div>
@@ -109,100 +115,47 @@ function Estoque() {
         {/* Tabela */}
         <div className="card-tabela">
 
-          <h4>
-            Produtos com Estoque Crítico/Atenção
-          </h4>
+          <h4>Produtos com Estoque Crítico/Atenção</h4>
 
           <table className="tabela-estoque-baixo">
-
             <thead>
-
               <tr>
                 <th>Produto</th>
+                <th>Cor</th>
+                <th>Tamanho</th>
                 <th>Categoria</th>
                 <th>Estoque Atual</th>
-                <th>Estoque Mínimo</th>
                 <th>Status</th>
                 <th>Valor Unitário</th>
                 <th>Valor Total</th>
               </tr>
-
             </thead>
-
             <tbody>
-
-              <tr>
-                <td>Camiseta Oversized Preta</td>
-                <td>Camisetas</td>
-                <td>8 unid.</td>
-                <td>20 unid.</td>
-
-                <td className="status-critico">
-                  Crítico
-                </td>
-
-                <td>R$ 59,90</td>
-                <td>R$ 479,20</td>
-              </tr>
-
-              <tr>
-                <td>Shot Vista Verdurão</td>
-                <td>Shirts</td>
-                <td>15 unid.</td>
-                <td>30 unid.</td>
-
-                <td className="status-atencao">
-                  Atenção
-                </td>
-
-                <td>R$ 14,90</td>
-                <td>R$ 223,50</td>
-              </tr>
-
-              <tr>
-                <td>Calça Cargo Bege</td>
-                <td>Calças</td>
-                <td>10 unid.</td>
-                <td>25 unid.</td>
-
-                <td className="status-atencao">
-                  Atenção
-                </td>
-
-                <td>R$ 129,90</td>
-                <td>R$ 1.299,00</td>
-              </tr>
-
-              <tr>
-                <td>Tênis Street Preto</td>
-                <td>Tênis</td>
-                <td>5 pares</td>
-                <td>15 pares</td>
-
-                <td className="status-critico">
-                  Crítico
-                </td>
-
-                <td>R$ 299,90</td>
-                <td>R$ 1.499,50</td>
-              </tr>
-
-              <tr>
-                <td>Boné Logo Bordado</td>
-                <td>Boné</td>
-                <td>12 unid.</td>
-                <td>25 unid.</td>
-
-                <td className="status-atencao">
-                  Atenção
-                </td>
-
-                <td>R$ 49,90</td>
-                <td>R$ 598,80</td>
-              </tr>
-
+              {itensCriticos.map((item) => {
+                const status = classificarStatus(item.saldo_disponivel)
+                return (
+                  <tr key={item.id_Estoque}>
+                    <td>{item.nome_produto}</td>
+                    <td>{item.cor}</td>
+                    <td>{item.tamanho}</td>
+                    <td>{item.categoria}</td>
+                    <td>{item.saldo_disponivel} unid.</td>
+                    <td className={status === 'Crítico' ? 'status-critico' : 'status-atencao'}>
+                      {status}
+                    </td>
+                    <td>{formatarMoeda(item.preco)}</td>
+                    <td>{formatarMoeda(item.saldo_disponivel * item.preco)}</td>
+                  </tr>
+                )
+              })}
+              {!loading && itensCriticos.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '1rem' }}>
+                    Nenhum item em situação crítica ou de atenção 🎉
+                  </td>
+                </tr>
+              )}
             </tbody>
-
           </table>
 
         </div>
