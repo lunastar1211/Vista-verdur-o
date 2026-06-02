@@ -28,8 +28,8 @@ app.use("/api/notificacoes",  require("./routes/notificacoes"));
 app.use("/api/relatorios",    require("./routes/relatorios"));
 app.use("/api/logs",          require("./routes/logs"));
 app.use("/api/conhecimento",  require("./routes/conhecimento"));
+app.use("/api/analises", require("./routes/analises"));
 app.use("/api/dashboard", require("./routes/dashboard"));
-
 // ── Inicialização ─────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
