@@ -9,7 +9,7 @@ import { useApi, useMutation } from '../hooks/useApi'
 import { getDashboardResumo } from '../services/dashboard'
 import {
   getProdutosParados, getGiroEstoque, getCurvaAbc,
-  getSugestoesPendentes, gerarSugestoes, decidirSugestao,
+  getSugestoesPendentes, gerarSugestoes,
 } from '../services/analises'
 
 function formatarMoeda(v) {
@@ -28,21 +28,11 @@ function Relatorio() {
   const { data: sugestoes, loading: loadSug, refetch: refetchSug } = useApi(getSugestoesPendentes)
 
   const { mutate: gerarSug, loading: gerando } = useMutation(() => gerarSugestoes(1))
-  const { mutate: decidir,  loading: decidindo } = useMutation(
-    ({ id, status }) => decidirSugestao(id, status, 1)
-  )
 
   async function handleGerar() {
     try {
       const r = await gerarSug()
       alert(r.mensagem)
-      refetchSug()
-    } catch (e) { alert('Erro: ' + e.message) }
-  }
-
-  async function handleDecisao(id, status) {
-    try {
-      await decidir({ id, status })
       refetchSug()
     } catch (e) { alert('Erro: ' + e.message) }
   }
@@ -67,7 +57,6 @@ function Relatorio() {
           {ABAS.map(a => <button key={a} onClick={() => setAba(a)} style={estiloAba(a)}>{a}</button>)}
         </div>
 
-        {/* INDICADORES */}
         {aba === 'Indicadores' && (
           <div className="indicadores-relatorio">
             <div className="indicador"><h4>Faturamento Total</h4><p>{formatarMoeda(resumo?.receita_total ?? 0)}</p></div>
@@ -78,7 +67,6 @@ function Relatorio() {
           </div>
         )}
 
-        {/* PRODUTOS PARADOS */}
         {aba === 'Produtos Parados' && (
           <div className="card-tabela">
             <h4>Produtos parados há mais de 91 dias com saldo {'>'} 0</h4>
@@ -109,7 +97,6 @@ function Relatorio() {
           </div>
         )}
 
-        {/* GIRO DE ESTOQUE */}
         {aba === 'Giro de Estoque' && (
           <div className="card-tabela">
             <h4>Giro de Estoque — unidades vendidas por mês</h4>
@@ -126,9 +113,7 @@ function Relatorio() {
                     <tr key={g.id_var}>
                       <td>{g.nome_produto}</td><td>{g.cor}</td><td>{g.tamanho}</td>
                       <td>{g.total_vendido} unid.</td>
-                      <td style={{ fontWeight: 600, color: g.giro_mensal > 0 ? '#2e7d32' : '#c62828' }}>
-                        {g.giro_mensal}
-                      </td>
+                      <td style={{ fontWeight: 600, color: g.giro_mensal > 0 ? '#2e7d32' : '#c62828' }}>{g.giro_mensal}</td>
                       <td>{g.saldo_disponivel} unid.</td>
                       <td>{g.ultima_venda ? new Date(g.ultima_venda).toLocaleDateString('pt-BR') : '—'}</td>
                     </tr>
@@ -139,7 +124,6 @@ function Relatorio() {
           </div>
         )}
 
-        {/* CURVA ABC */}
         {aba === 'Curva ABC' && (
           <div className="card-tabela">
             <h4>Curva ABC — classificação por receita</h4>
@@ -163,9 +147,7 @@ function Relatorio() {
                       <td>{c.nome_produto}</td><td>{c.categoria}</td>
                       <td>{formatarMoeda(c.receita_total)}</td><td>{c.qtd_vendida}</td>
                       <td>{c.pct_acumulado}%</td>
-                      <td style={{ fontWeight: 700, color: c.curva === 'A' ? '#2e7d32' : c.curva === 'B' ? '#f57c00' : '#c62828' }}>
-                        {c.curva}
-                      </td>
+                      <td style={{ fontWeight: 700, color: c.curva === 'A' ? '#2e7d32' : c.curva === 'B' ? '#f57c00' : '#c62828' }}>{c.curva}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,11 +156,10 @@ function Relatorio() {
           </div>
         )}
 
-        {/* SUGESTÕES DE PROMOÇÃO */}
         {aba === 'Sugestões de Promoção' && (
           <div className="card-tabela">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h4 style={{ margin: 0 }}>Sugestões pendentes de aprovação</h4>
+              <h4 style={{ margin: 0 }}>Sugestões de promoção geradas automaticamente</h4>
               <button onClick={handleGerar} disabled={gerando} style={{
                 padding: '0.5rem 1.2rem', background: '#2e7d32', color: '#fff',
                 border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600,
@@ -191,33 +172,34 @@ function Relatorio() {
                 <thead>
                   <tr>
                     <th>Produto</th><th>Cor</th><th>Tamanho</th><th>Saldo</th>
-                    <th>Dias Parado</th><th>Desconto</th><th>Confiança</th>
-                    <th>Justificativa</th><th>Ações</th>
+                    <th>Dias Parado</th><th>Preço Atual</th><th>Desconto Sugerido</th>
+                    <th>Preço com Desconto</th><th>Justificativa</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sugestoes?.length === 0 && (
                     <tr>
                       <td colSpan={9} style={{ textAlign: 'center', padding: '1rem', color: '#888' }}>
-                        Nenhuma sugestão pendente. Clique em "Gerar Sugestões".
+                        Nenhuma sugestão gerada. Clique em "Gerar Sugestões".
                       </td>
                     </tr>
                   )}
-                  {sugestoes?.map(s => (
-                    <tr key={s.id_sugestao}>
-                      <td>{s.nome_produto}</td><td>{s.cor}</td><td>{s.tamanho}</td>
-                      <td>{s.saldo_disponivel} unid.</td><td>{s.dias_sem_v} dias</td>
-                      <td style={{ fontWeight: 700, color: '#f57c00' }}>{s.desconto_sugerido}%</td>
-                      <td>{s.score_confianca}%</td>
-                      <td style={{ maxWidth: 250, fontSize: '0.85rem' }}>{s.justificativa}</td>
-                      <td>
-                        <button onClick={() => handleDecisao(s.id_sugestao, 'aprovado')} disabled={decidindo}
-                          style={{ marginRight: 6, padding: '0.3rem 0.7rem', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✓</button>
-                        <button onClick={() => handleDecisao(s.id_sugestao, 'rejeitado')} disabled={decidindo}
-                          style={{ padding: '0.3rem 0.7rem', background: '#c62828', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✗</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {sugestoes?.map(s => {
+                    const precoComDesconto = s.preco - (s.preco * s.desconto_sugerido / 100)
+                    return (
+                      <tr key={s.id_sugestao}>
+                        <td>{s.nome_produto}</td>
+                        <td>{s.cor}</td>
+                        <td>{s.tamanho}</td>
+                        <td>{s.saldo_disponivel} unid.</td>
+                        <td>{s.dias_sem_v} dias</td>
+                        <td>{formatarMoeda(s.preco)}</td>
+                        <td style={{ fontWeight: 700, color: '#f57c00' }}>{s.desconto_sugerido}%</td>
+                        <td style={{ fontWeight: 700, color: '#2e7d32' }}>{formatarMoeda(precoComDesconto)}</td>
+                        <td style={{ maxWidth: 250, fontSize: '0.85rem' }}>{s.justificativa}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )}
