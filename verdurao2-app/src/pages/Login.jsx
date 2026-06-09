@@ -24,11 +24,12 @@ function Login() {
 
         {/* Lado esquerdo */}
         <div
-          className="lado-esquerdo"
-          style={{
-          backgroundImage: `url(${catedral})`
-          }}
-        >
+        className="lado-esquerdo"
+        style={{
+        backgroundImage: `url(${catedral})`,
+        backgroundColor: '#2D4228',
+  }}
+>
 
           <div className="conteudo-esquerdo">
 

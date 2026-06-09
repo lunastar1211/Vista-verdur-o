@@ -38,6 +38,10 @@ body {
     position: relative;
 }
 
+.lado-esquerdo {
+    background-color: var(--sidebar-bg);
+}
+
 .lado-esquerdo::before {
     content: '';
     position: absolute;
