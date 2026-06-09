@@ -198,7 +198,7 @@ Principais tabelas:
 ## 👥 Squad
 
 Desenvolvido pelo Squad 23 — Projeto Vista Verdurão  
-Curso de Análise e Desenvolvimento de Sistemas
+Curso de Ciência da Computação.
 
 ---
 
